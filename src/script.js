@@ -38,11 +38,11 @@ window.addEventListener("resize", () => {
 	// Update sizes
 	sizes.width = window.innerWidth;
 	sizes.height = window.innerHeight;
-	pixelRatio: (Math.min(window.devicePixelRatio, 2),
-		(sizes.resolution = new THREE.Vector2(
-			sizes.width * sizes.pixelRatio,
-			sizes.height * sizes.pixelRatio,
-		)));
+	sizes.pixelRatio = Math.min(window.devicePixelRatio, 2);
+	sizes.resolution.set(
+		sizes.width * sizes.pixelRatio,
+		sizes.height * sizes.pixelRatio,
+	);
 
 	// Update camera
 	camera.aspect = sizes.width / sizes.height;
@@ -63,7 +63,7 @@ const camera = new THREE.PerspectiveCamera(
 	0.1,
 	100,
 );
-camera.position.set(1.5, 0, 6);
+camera.position.set(4, 0, 20);
 scene.add(camera);
 
 // Controls
@@ -95,7 +95,15 @@ const textures = [
 	textureLoader.load("./particles/8.png"),
 ];
 
-const createFirework = (count, position, size, texture, radius, color) => {
+const createFirework = (
+	count,
+	position,
+	size,
+	texture,
+	radius,
+	color,
+	duration,
+) => {
 	// Geometry
 	const positionsArray = new Float32Array(count * 3);
 	const sizesArray = new Float32Array(count);
@@ -132,7 +140,7 @@ const createFirework = (count, position, size, texture, radius, color) => {
 	);
 	geometry.setAttribute(
 		"aSize",
-		new THREE.Float32BufferAttribute(positionsArray, 1),
+		new THREE.Float32BufferAttribute(sizesArray, 1),
 	);
 	geometry.setAttribute(
 		"aTimeMultiplier",
@@ -171,31 +179,87 @@ const createFirework = (count, position, size, texture, radius, color) => {
 	// Animate
 	gsap.to(material.uniforms.uProgress, {
 		value: 1,
-		duration: 3,
+		duration: duration,
 		ease: "linear",
 		onComplete: destroy,
 	});
 };
 
-const createRandomFirework = () => {
-	const count = Math.round(400 + Math.random() * 1000);
-	const position = new THREE.Vector3(
-		(Math.random() - 0.5) * 2,
-		Math.random(),
-		(Math.random() - 0.5) * 2,
+const materialParameters = {};
+materialParameters.size = 0.2;
+materialParameters.particlesCountMultiplier = 1.2;
+materialParameters.duration = 3;
+materialParameters.sphereRadius = 1;
+
+gui.add(materialParameters, "size").min(0.01).max(2).step(0.01);
+gui
+	.add(materialParameters, "particlesCountMultiplier")
+	.min(0.1)
+	.max(20)
+	.step(0.1);
+gui.add(materialParameters, "duration").min(1).max(10).step(0.1);
+gui.add(materialParameters, "sphereRadius").min(0.2).max(2.5).step(0.1);
+
+const createRandomFirework = (position = null) => {
+	const count = Math.round(
+		(400 + Math.random() * 1000) * materialParameters.particlesCountMultiplier,
 	);
-	const size = 0.1 + Math.random() * 0.1;
+	const fireworkPosition =
+		position ??
+		new THREE.Vector3(
+			(Math.random() - 0.5) * 10,
+			(Math.random() - 0.5) * 5,
+			(Math.random() - 0.5) * 10,
+		);
+	const size = 0.1 + Math.random() * materialParameters.size;
 	const texture = textures[Math.floor(Math.random() * textures.length)];
-	const radius = 0.5 + Math.random();
+	const radius = 0.5 + Math.random() * materialParameters.sphereRadius;
 	const color = new THREE.Color();
 	color.setHSL(Math.random(), 1, 0.7);
+	const duration = materialParameters.duration;
 
-	createFirework(count, position, size, texture, radius, color);
+	createFirework(
+		count,
+		fireworkPosition,
+		size,
+		texture,
+		radius,
+		color,
+		duration,
+	);
 };
 createRandomFirework();
 
-window.addEventListener("click", () => {
-	createRandomFirework();
+/**
+ * Raycaster
+ */
+const raycaster = new THREE.Raycaster();
+const clickPlane = new THREE.Plane(); // Plan utilisé pour projeter un point à une certaine profondeur
+const clickPoint = new THREE.Vector3(); // Position du clic
+const cameraDirection = new THREE.Vector3(); // Utilisé pour construire le plan
+
+const cursor = new THREE.Vector2();
+
+window.addEventListener("click", (event) => {
+	// Convertir la position de la souris en des coordonnées normalisées
+	const rect = canvas.getBoundingClientRect();
+	cursor.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+	cursor.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
+
+	// Envoyer un rayon de la camera vers la souris
+	raycaster.setFromCamera(cursor, camera);
+	// Obtenir l'orientation de la camera
+	camera.getWorldDirection(cameraDirection);
+	// Construire un plan perpendiculaire à la direction de la caméra et passant par controls.target
+	clickPlane.setFromNormalAndCoplanarPoint(cameraDirection, controls.target);
+
+	// Invoque un firework à l'intersection entre le plan et le rayon
+	if (raycaster.ray.intersectPlane(clickPlane, clickPoint)) {
+		createRandomFirework(clickPoint.clone());
+	} else {
+		// Fallback au cas où le point ne touche pas le plan
+		createRandomFirework();
+	}
 });
 
 /**
