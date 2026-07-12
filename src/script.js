@@ -189,16 +189,26 @@ const materialParameters = {};
 materialParameters.size = 0.2;
 materialParameters.particlesCountMultiplier = 1.2;
 materialParameters.duration = 3;
-materialParameters.sphereRadius = 1;
+materialParameters.sphereRadius = 0.5;
 
-gui.add(materialParameters, "size").min(0.01).max(2).step(0.01);
-gui
+const fireworkFolder = gui.addFolder("Firework");
+fireworkFolder
+	.add(materialParameters, "size")
+	.min(0.01)
+	.max(2)
+	.step(0.01)
+	.name("particleSize");
+fireworkFolder
 	.add(materialParameters, "particlesCountMultiplier")
 	.min(0.1)
 	.max(20)
 	.step(0.1);
-gui.add(materialParameters, "duration").min(1).max(10).step(0.1);
-gui.add(materialParameters, "sphereRadius").min(0.2).max(2.5).step(0.1);
+fireworkFolder.add(materialParameters, "duration").min(1).max(10).step(0.1);
+fireworkFolder
+	.add(materialParameters, "sphereRadius")
+	.min(0.2)
+	.max(2.5)
+	.step(0.1);
 
 const createRandomFirework = (position = null) => {
 	const count = Math.round(
@@ -213,7 +223,7 @@ const createRandomFirework = (position = null) => {
 		);
 	const size = 0.1 + Math.random() * materialParameters.size;
 	const texture = textures[Math.floor(Math.random() * textures.length)];
-	const radius = 0.5 + Math.random() * materialParameters.sphereRadius;
+	const radius = materialParameters.sphereRadius + Math.random();
 	const color = new THREE.Color();
 	color.setHSL(Math.random(), 1, 0.7);
 	const duration = materialParameters.duration;
@@ -308,15 +318,18 @@ const updateSky = () => {
 	renderer.toneMappingExposure = skyParameters.exposure;
 };
 
-gui.add(skyParameters, "turbidity", 0.0, 20.0, 0.1).onChange(updateSky);
-gui.add(skyParameters, "rayleigh", 0.0, 4, 0.001).onChange(updateSky);
-gui.add(skyParameters, "mieCoefficient", 0.0, 0.1, 0.001).onChange(updateSky);
-gui
+const skyFolder = gui.addFolder("Sky");
+skyFolder.add(skyParameters, "turbidity", 0.0, 20.0, 0.1).onChange(updateSky);
+skyFolder.add(skyParameters, "rayleigh", 0.0, 4, 0.001).onChange(updateSky);
+skyFolder
+	.add(skyParameters, "mieCoefficient", 0.0, 0.1, 0.001)
+	.onChange(updateSky);
+skyFolder
 	.add(skyParameters, "mieDirectionalG", 0.7, 0.999, 0.0001)
 	.onChange(updateSky);
-gui.add(skyParameters, "elevation", -3, 90, 0.01).onChange(updateSky);
-gui.add(skyParameters, "azimuth", -180, 180, 0.1).onChange(updateSky);
-gui.add(skyParameters, "exposure", 0, 1, 0.0001).onChange(updateSky);
+skyFolder.add(skyParameters, "elevation", -3, 90, 0.01).onChange(updateSky);
+skyFolder.add(skyParameters, "azimuth", -180, 180, 0.1).onChange(updateSky);
+skyFolder.add(skyParameters, "exposure", 0, 1, 0.0001).onChange(updateSky);
 // gui.add(skyParameters, "showSunDisc").onChange(updateSky);
 
 // const folderClouds = gui.addFolder("Clouds");
