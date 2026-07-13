@@ -250,7 +250,8 @@ const cameraDirection = new THREE.Vector3(); // Utilisé pour construire le plan
 
 const cursor = new THREE.Vector2();
 
-window.addEventListener("click", (event) => {
+// On remplace l'event click par pointerdown pour permettre aux mobiles d'utiliser les effets du raycaster efficacement
+window.addEventListener("pointerdown", (event) => {
 	// Convertir la position de la souris en des coordonnées normalisées
 	const rect = canvas.getBoundingClientRect();
 	cursor.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
